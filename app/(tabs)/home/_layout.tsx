@@ -1,16 +1,15 @@
-import { View } from 'react-native'
+import { View, Text } from 'react-native'
 import React from 'react'
 import { Stack } from 'expo-router'
 
-const ProfileLayout = () => {
+const HomeLayout = () => {
     return (
         <View style={{ flex: 1 }}>
             <Stack>
                 <Stack.Screen name='index' options={{ headerShown: false }} />
-                <Stack.Screen name='friends' options={{ headerShown: false }} />
             </Stack>
         </View>
     )
 }
 
-export default ProfileLayout
+export default HomeLayout

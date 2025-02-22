@@ -38,7 +38,7 @@ const Login = () => {
                 if (res) {
                     setUsername('');
                     setPassword('');
-                    router.push('(tabs)' as any)
+                    router.push('(tabs)/home' as any)
                 }
 
             } catch (error) {

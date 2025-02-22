@@ -1,13 +1,12 @@
 import { router, Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
-import { Home, MessageCircle, User, Settings } from 'lucide-react-native';
+import { Home, MessageCircle, User, Settings, Users } from 'lucide-react-native';
 
 import { HapticTab } from '@/components/HapticTab';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import * as SecureStore from 'expo-secure-store';
 import { useAppSelector } from '@/redux/store';
 
 export default function TabLayout() {
@@ -56,11 +55,24 @@ export default function TabLayout() {
         },
       }}>
       <Tabs.Screen
-        name="index"
+        name="home"
         options={{
           title: 'Home',
           tabBarIcon: ({ color }) => (
             <Home
+              size={iconSize}
+              color={color}
+              strokeWidth={2}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="friend"
+        options={{
+          title: 'Friends',
+          tabBarIcon: ({ color }) => (
+            <Users
               size={iconSize}
               color={color}
               strokeWidth={2}
@@ -95,19 +107,7 @@ export default function TabLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: 'Settings',
-          tabBarIcon: ({ color }) => (
-            <Settings
-              size={iconSize}
-              color={color}
-              strokeWidth={2}
-            />
-          ),
-        }}
-      />
+
     </Tabs>
   );
 }

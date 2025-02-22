@@ -2,7 +2,7 @@ import axios from "axios";
 import { LOGIN_FAILURE, LOGIN_START, LOGIN_SUCCESS, LOGOUT_SUCCESS, REGISTER_FAILURE, REGISTER_START, REGISTER_SUCCESS } from "./actionTypes";
 // Corrected login function
 // const URL = `https://backend-dzjv.onrender.com`
-const URL = `https://fine-planes-share.loca.lt`
+const URL = `http://192.168.0.107:3000`
 export const loginFunction = (payload: any) => async (dispatch: any) => {
     dispatch({ type: LOGIN_START });
     try {

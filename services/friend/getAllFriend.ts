@@ -1,4 +1,5 @@
 import { axiosInstance } from "@/helpers/axiosInstance";
+import { get } from "react-native/Libraries/TurboModule/TurboModuleRegistry";
 
 export const getMe = async () => {
     try {
@@ -28,3 +29,13 @@ export const sendFriendRequest = async (paylaod: any) => {
         console.log(error);
     }
 };
+
+
+export const getAllFriend = async () => {
+    try {
+        const res = await axiosInstance.post('/user/get-friend');
+        return res.data;
+    } catch (error) {
+        console.log(error);
+    }
+}

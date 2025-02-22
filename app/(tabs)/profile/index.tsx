@@ -22,6 +22,7 @@ import {
     AtSign,
     MessageCircle,
 } from 'lucide-react-native';
+import { router } from 'expo-router';
 
 const Profile = () => {
     const [me, setMe] = useState<any>(null);
@@ -112,12 +113,15 @@ const Profile = () => {
                             {me.email}
                         </Text>
                     </View>
-                    <View style={styles.infoRow}>
+
+
+                    <TouchableOpacity style={styles.infoRow} onPress={() => router.push("/profile/friends")}>
                         <Users size={20} color={theme.colors.primary} />
                         <Text variant="bodyLarge" style={styles.infoText}>
                             {me.friends?.length || 0} Friends
                         </Text>
-                    </View>
+                    </TouchableOpacity>
+                    {/* </View> */}
                     <View style={styles.infoRow}>
                         <Clock size={20} color={theme.colors.primary} />
                         <Text variant="bodyLarge" style={styles.infoText}>
