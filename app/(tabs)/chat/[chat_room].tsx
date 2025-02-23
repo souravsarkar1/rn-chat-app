@@ -1,7 +1,7 @@
-import { View, Text, TextInput, FlatList, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, Text, TextInput, FlatList, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity, SafeAreaView, Image } from 'react-native';
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useLocalSearchParams } from 'expo-router';
-import { getAllChat, sendMessage } from '@/services/chat/chatServices';
+import { getAllChat, getChatFriend, sendMessage } from '@/services/chat/chatServices';
 import { formatTime } from '@/helpers/timeformat';
 import io from 'socket.io-client';
 import { useAppSelector } from '@/redux/store';
@@ -15,12 +15,12 @@ const SingleChatPage = () => {
     const [isTyping, setIsTyping] = useState(false);
     const flatListRef = useRef<FlatList>(null);
     const socket = useRef<any>(null);
+    const [friendDetails, setFriendDetails] = useState<any>(null);
     const { user } = useAppSelector((state: any) => state.auth);
     const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-    // Initialize Socket.IO connection
     useEffect(() => {
-        socket.current = io('http://localhost:3000', {
+        socket.current = io('http://192.168.0.107:3000', {
             withCredentials: true,
         });
 
@@ -32,6 +32,7 @@ const SingleChatPage = () => {
                     ...prevMessages,
                     {
                         ...message,
+                        text: message?.content,
                         sender: message.sender === user?._id ? 'You' : 'other',
                         sendingTime: new Date().toISOString(),
                     },
@@ -50,14 +51,12 @@ const SingleChatPage = () => {
         };
     }, [chat_room, user?._id]);
 
-    // Scroll to bottom helper
     const scrollToBottom = useCallback((animated = true) => {
         if (flatListRef.current && messages.length > 0) {
             flatListRef.current.scrollToEnd({ animated });
         }
     }, [messages.length]);
 
-    // Fetch messages
     useEffect(() => {
         const fetchMessages = async () => {
             try {
@@ -73,10 +72,19 @@ const SingleChatPage = () => {
             }
         };
 
+        const fetchFriend = async () => {
+            try {
+                const res = await getChatFriend({ userId: user?._id, conversationId: chat_room });
+                setFriendDetails(res.data);
+            } catch (error) {
+                console.log(error);
+            }
+        };
+
         fetchMessages();
+        fetchFriend();
     }, [chat_room, user?._id]);
 
-    // Handle initial scroll and subsequent message updates
     useEffect(() => {
         if (isInitialLoad && messages.length > 0) {
             setTimeout(() => {
@@ -131,25 +139,29 @@ const SingleChatPage = () => {
     };
 
     return (
-        <SafeAreaView
-            style={[
-                styles.container,
-                { paddingTop: insets.top }
-            ]}
-        >
+        <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 style={styles.keyboardAvoidingView}
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
             >
-                {/* Chat Header */}
                 <View style={styles.header}>
-                    <Text style={styles.headerText}>
-                        {recipientName || 'Chat'}
-                    </Text>
+                    <View style={styles.headerContent}>
+                        <Image
+                            source={{ uri: friendDetails?.profilePic }}
+                            style={styles.profilePic}
+                        />
+                        <View style={styles.headerTextContainer}>
+                            <Text style={styles.headerText}>
+                                {friendDetails?.fullName}
+                            </Text>
+                            <Text style={styles.statusText}>
+                                {isTyping ? 'Typing...' : friendDetails?.status}
+                            </Text>
+                        </View>
+                    </View>
                 </View>
 
-                {/* Chat Messages */}
                 <FlatList
                     ref={flatListRef}
                     data={messages}
@@ -161,58 +173,40 @@ const SingleChatPage = () => {
                                 item.sender === 'You' ? styles.sentMessage : styles.receivedMessage,
                             ]}
                         >
-                            <Text style={[
-                                styles.messageText,
-                                item.sender === 'You' ? styles.sentMessageText : styles.receivedMessageText
-                            ]}>
-                                {item.text}
-                            </Text>
-                            <Text style={[
-                                styles.messageTime,
-                                item.sender === 'You' ? styles.sentMessageTime : styles.receivedMessageTime
-                            ]}>
-                                {formatTime(item.sendingTime)}
-                            </Text>
+                            <View style={styles.messageContent}>
+                                <Text style={[
+                                    styles.messageText,
+                                    item.sender === 'You' ? styles.sentMessageText : styles.receivedMessageText
+                                ]}>
+                                    {item.text}
+                                </Text>
+                                <Text style={[
+                                    styles.messageTime,
+                                    item.sender === 'You' ? styles.sentMessageTime : styles.receivedMessageTime
+                                ]}>
+                                    {formatTime(item.sendingTime)}
+                                </Text>
+                            </View>
                         </View>
                     )}
-                    contentContainerStyle={[
-                        styles.messagesList,
-                        { paddingBottom: insets.bottom + 20 }
-                    ]}
-                    onContentSizeChange={() => {
-                        if (!isInitialLoad) {
-                            scrollToBottom(false);
-                        }
-                    }}
-                    onLayout={() => {
-                        if (!isInitialLoad) {
-                            scrollToBottom(false);
-                        }
-                    }}
+                    contentContainerStyle={[styles.messagesList, { paddingBottom: insets.bottom + 20 }]}
+                    onContentSizeChange={() => !isInitialLoad && scrollToBottom(false)}
+                    onLayout={() => !isInitialLoad && scrollToBottom(false)}
                 />
 
-                {/* Typing Indicator */}
-                {isTyping && (
-                    <View style={styles.typingIndicator}>
-                        <Text style={styles.typingText}>Typing...</Text>
-                    </View>
-                )}
-
-                {/* Message Input */}
-                <View style={[
-                    styles.inputContainer,
-                    { paddingBottom: Math.max(insets.bottom, 16) }
-                ]}>
+                <View style={[styles.inputContainer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
                     <TextInput
                         style={styles.input}
                         placeholder="Type a message..."
                         value={newMessage}
                         onChangeText={handleTyping}
                         multiline
+                        maxLength={1000}
                     />
                     <TouchableOpacity
-                        style={styles.sendButton}
+                        style={[styles.sendButton, !newMessage.trim() && styles.sendButtonDisabled]}
                         onPress={handleSendMessage}
+                        disabled={!newMessage.trim()}
                     >
                         <Text style={styles.sendButtonText}>Send</Text>
                     </TouchableOpacity>
@@ -231,16 +225,38 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     header: {
-        padding: 16,
         backgroundColor: '#FFFFFF',
         borderBottomWidth: 1,
         borderBottomColor: '#E9ECEF',
         elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+    },
+    headerContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+    },
+    headerTextContainer: {
+        flex: 1,
+        marginLeft: 12,
     },
     headerText: {
         fontSize: 18,
         fontWeight: 'bold',
         color: '#212529',
+    },
+    profilePic: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+    },
+    statusText: {
+        fontSize: 14,
+        color: '#868E96',
+        marginTop: 2,
     },
     messagesList: {
         padding: 16,
@@ -248,18 +264,30 @@ const styles = StyleSheet.create({
     },
     messageContainer: {
         maxWidth: '80%',
+        marginVertical: 4,
+    },
+    messageContent: {
         padding: 12,
         borderRadius: 16,
-        marginBottom: 8,
     },
     sentMessage: {
         alignSelf: 'flex-end',
-        backgroundColor: '#4263EB',
-        borderTopRightRadius: 4,
     },
     receivedMessage: {
         alignSelf: 'flex-start',
+    },
+    sentMessageText: {
+        color: '#FFFFFF',
+        backgroundColor: '#4263EB',
+        padding: 12,
+        borderRadius: 16,
+        borderTopRightRadius: 4,
+    },
+    receivedMessageText: {
+        color: '#212529',
         backgroundColor: '#FFFFFF',
+        padding: 12,
+        borderRadius: 16,
         borderTopLeftRadius: 4,
         borderWidth: 1,
         borderColor: '#E9ECEF',
@@ -267,18 +295,13 @@ const styles = StyleSheet.create({
     messageText: {
         fontSize: 16,
     },
-    sentMessageText: {
-        color: '#FFFFFF',
-    },
-    receivedMessageText: {
-        color: '#212529',
-    },
     messageTime: {
         fontSize: 12,
         marginTop: 4,
+        alignSelf: 'flex-end',
     },
     sentMessageTime: {
-        color: 'rgba(255, 255, 255, 0.7)',
+        color: '#868E96',
     },
     receivedMessageTime: {
         color: '#868E96',
@@ -307,21 +330,15 @@ const styles = StyleSheet.create({
         borderRadius: 24,
         minWidth: 64,
         alignItems: 'center',
+        justifyContent: 'center',
+    },
+    sendButtonDisabled: {
+        backgroundColor: '#CED4DA',
     },
     sendButtonText: {
         color: '#FFFFFF',
         fontWeight: 'bold',
         fontSize: 16,
-    },
-    typingIndicator: {
-        padding: 8,
-        alignItems: 'flex-start',
-        paddingLeft: 16,
-    },
-    typingText: {
-        fontSize: 14,
-        color: '#868E96',
-        fontStyle: 'italic',
     },
 });
 
