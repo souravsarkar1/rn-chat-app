@@ -39,3 +39,12 @@ export const getAllFriend = async () => {
         console.log(error);
     }
 }
+
+export const getAllFriendRequst = async () => {
+    try {
+        const res = await axiosInstance.post("/user/find-friend-request");
+        return res.data;
+    } catch (error) {
+        throw error;
+    }
+}

@@ -1,7 +1,7 @@
 import axios from "axios";
 import { store } from "@/redux/store";
 // const URL = "https://happy-clowns-remain.loca.lt" || process.env.EXPO_PUBLIC_API_URL
-const URL = "http://192.168.0.107:3000" || process.env.EXPO_PUBLIC_API_URL
+const URL = "http://192.168.0.107:3000";
 export const axiosInstance = axios.create({
     baseURL: URL,
 });

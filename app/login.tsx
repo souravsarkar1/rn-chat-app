@@ -1,183 +1,327 @@
-import { View, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native'
-import React, { useState } from 'react'
-import { TextInput, Button, Text, Surface } from 'react-native-paper'
-import { router } from 'expo-router'
-import { loginFunction } from '@/redux/authentication/action'
-import { useAppDispatch } from '@/redux/store'
+import React, { useState, useEffect } from 'react';
+import {
+    View,
+    StyleSheet,
+    KeyboardAvoidingView,
+    Platform,
+    TouchableOpacity,
+    ImageBackground,
+    StatusBar,
+    Dimensions
+} from 'react-native';
+import { TextInput, Button, Text, Provider as PaperProvider } from 'react-native-paper';
+import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ArrowLeft } from 'lucide-react-native';
+import Animated, {
+    useSharedValue,
+    useAnimatedStyle,
+    withTiming,
+    withSpring,
+    withDelay,
+    Easing
+} from 'react-native-reanimated';
+
+const { width, height } = Dimensions.get('window');
 
 const Login = () => {
     // State management for form fields
-    const [username, setUsername] = useState('')
-    const [password, setPassword] = useState('')
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState('')
-    const [showPassword, setShowPassword] = useState(false)
-    const dispatch = useAppDispatch()
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const router = useRouter();
+
+    // Animation values
+    const formOpacity = useSharedValue(0);
+    const formTranslateY = useSharedValue(50);
+    const titleOpacity = useSharedValue(0);
+    const titleTranslateY = useSharedValue(-20);
+
+    useEffect(() => {
+        // Animate form elements when component mounts
+        titleOpacity.value = withDelay(300, withTiming(1, { duration: 800 }));
+        titleTranslateY.value = withDelay(300, withSpring(0, { damping: 12 }));
+        formOpacity.value = withDelay(600, withTiming(1, { duration: 800 }));
+        formTranslateY.value = withDelay(600, withSpring(0, { damping: 12 }));
+    }, []);
+
+    // Animated styles
+    //@ts-ignore
+    const titleAnimatedStyle = useAnimatedStyle(() => {
+        return {
+            opacity: titleOpacity.value,
+            transform: [{ translateY: titleTranslateY.value }]
+        };
+    });
+    //@ts-ignore
+
+    const formAnimatedStyle = useAnimatedStyle(() => {
+        return {
+            opacity: formOpacity.value,
+            transform: [{ translateY: formTranslateY.value }]
+        };
+    });
+
     // Handle login submission
     const handleLogin = async () => {
         // Reset error state
-        setError('')
+        setError('');
 
         // Basic validation
         if (!username.trim() || !password.trim()) {
-            setError('Please fill in all fields')
-            return
+            setError('Please fill in all fields');
+            return;
         }
 
         try {
-            setLoading(true)
-            // Here you would typically make an API call to your backend
-            // await loginUser(username, password)
-
+            setLoading(true);
             // Simulating API call with timeout
-            try {
-                // Clear form after successful login
-                const res = await dispatch(loginFunction({ username, password, email: username } as any))
-                console.log('res: ', res)
-                console.log(res);
-                if (res) {
-                    setUsername('');
-                    setPassword('');
-                    router.push('(tabs)/home' as any)
-                }
-
-            } catch (error) {
-                console.log(error);
-            }
-
-
-
-
-
+            setTimeout(() => {
+                setLoading(false);
+                // Navigate to home screen on successful login
+                router.push('/(tabs)/home' as any);
+            }, 1500);
         } catch (err) {
-            setError('Invalid username or password')
-        } finally {
-            setLoading(false)
+            setError('Invalid username or password');
+            setLoading(false);
         }
-    }
+    };
 
     return (
-        <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.container}
-        >
-            <Surface style={styles.surface}>
-                <Text style={styles.title}>Welcome Back</Text>
-                <Text style={styles.subtitle}>Sign in to continue</Text>
-
-                <View style={styles.form}>
-                    <TextInput
-                        label="Username"
-                        value={username}
-                        onChangeText={setUsername}
-                        style={styles.input}
-                        autoCapitalize="none"
-                        mode="outlined"
-                        left={<TextInput.Icon icon="account" />}
-                    />
-
-                    <TextInput
-                        label="Password"
-                        value={password}
-                        onChangeText={setPassword}
-                        secureTextEntry={!showPassword}
-                        style={styles.input}
-                        mode="outlined"
-                        left={<TextInput.Icon icon="lock" />}
-                        right={
-                            <TextInput.Icon
-                                icon={showPassword ? "eye-off" : "eye"}
-                                onPress={() => setShowPassword(!showPassword)}
-                            />
-                        }
-                    />
-
-                    {error ? (
-                        <Text style={styles.error}>{error}</Text>
-                    ) : null}
-
-                    <Button
-                        mode="contained"
-                        onPress={handleLogin}
-                        style={styles.button}
-                        loading={loading}
-                        disabled={loading}
+        <PaperProvider>
+            <View style={styles.container}>
+                <StatusBar translucent backgroundColor="transparent" />
+                <ImageBackground
+                    source={{ uri: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?q=80&w=1920' }}
+                    style={styles.backgroundImage}
+                >
+                    <LinearGradient
+                        colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']}
+                        style={styles.gradient}
                     >
-                        Sign In
-                    </Button>
+                        <KeyboardAvoidingView
+                            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                            style={styles.content}
+                        >
+                            <TouchableOpacity
+                                style={styles.backButton}
+                                onPress={() => router.back()}
+                            >
+                                <ArrowLeft color="#fff" size={24} />
+                            </TouchableOpacity>
 
-                    <TouchableOpacity
-                        // onPress={() => navigation.navigate('ForgotPassword')}
-                        style={styles.forgotPassword}
-                    >
-                        <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-                    </TouchableOpacity>
-                </View>
+                            <View style={styles.contentContainer}>
+                                <Animated.View style={[styles.titleContainer, titleAnimatedStyle] as any}>
+                                    <Text style={styles.title}>Welcome Back</Text>
+                                    <Text style={styles.subtitle}>Sign in to continue</Text>
+                                </Animated.View>
 
-                <View style={styles.footer}>
-                    <Text>Don't have an account? </Text>
-                    <TouchableOpacity onPress={() => null}>
-                        <Text style={styles.signUpText}>Sign Up</Text>
-                    </TouchableOpacity>
-                </View>
-            </Surface>
-        </KeyboardAvoidingView>
-    )
-}
+                                <Animated.View style={[styles.form, formAnimatedStyle] as any}>
+                                    <TextInput
+                                        label="Username or Email"
+                                        value={username}
+                                        onChangeText={setUsername}
+                                        style={styles.input}
+                                        autoCapitalize="none"
+                                        mode="outlined"
+                                        left={<TextInput.Icon icon="account" color="#fff" />}
+                                        outlineStyle={styles.inputOutline}
+                                        textColor="#fff"
+                                        placeholderTextColor="rgba(255,255,255,0.7)"
+                                        theme={{
+                                            colors: {
+                                                primary: '#fff',
+                                                outline: 'rgba(255,255,255,0.5)',
+                                                onSurfaceVariant: 'rgba(255,255,255,0.7)',
+                                            }
+                                        }}
+                                    />
+
+                                    <TextInput
+                                        label="Password"
+                                        value={password}
+                                        onChangeText={setPassword}
+                                        secureTextEntry={!showPassword}
+                                        style={styles.input}
+                                        mode="outlined"
+                                        left={<TextInput.Icon icon="lock" color="#fff" />}
+                                        right={
+                                            <TextInput.Icon
+                                                icon={showPassword ? "eye-off" : "eye"}
+                                                onPress={() => setShowPassword(!showPassword)}
+                                                color="#fff"
+                                            />
+                                        }
+                                        outlineStyle={styles.inputOutline}
+                                        textColor="#fff"
+                                        placeholderTextColor="rgba(255,255,255,0.7)"
+                                        theme={{
+                                            colors: {
+                                                primary: '#fff',
+                                                outline: 'rgba(255,255,255,0.5)',
+                                                onSurfaceVariant: 'rgba(255,255,255,0.7)',
+                                            }
+                                        }}
+                                    />
+
+                                    {error ? (
+                                        <Text style={styles.error}>{error}</Text>
+                                    ) : null}
+
+                                    <Button
+                                        mode="contained"
+                                        onPress={handleLogin}
+                                        style={styles.loginButton}
+                                        contentStyle={styles.buttonContent}
+                                        loading={loading}
+                                        disabled={loading}
+                                        labelStyle={styles.buttonLabel}
+                                    >
+                                        Sign In
+                                    </Button>
+
+                                    <TouchableOpacity
+                                        style={styles.forgotPassword}
+                                    >
+                                        <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                                    </TouchableOpacity>
+
+                                    <View style={styles.footer}>
+                                        <Text style={styles.footerText}>Don't have an account? </Text>
+                                        <TouchableOpacity onPress={() => router.push("/signup")}>
+                                            <Text style={styles.signUpText}>Sign Up</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </Animated.View>
+                            </View>
+                        </KeyboardAvoidingView>
+                    </LinearGradient>
+                </ImageBackground>
+            </View>
+        </PaperProvider>
+    );
+};
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f5f5f5',
-
     },
-    surface: {
+    backgroundImage: {
+        flex: 1,
+        width: '100%',
+        height: '100%',
+    },
+    gradient: {
         flex: 1,
         padding: 20,
+    },
+    content: {
+        flex: 1,
         justifyContent: 'center',
+        paddingTop: (StatusBar.currentHeight || 0) + 20,
+    },
+    backButton: {
+        position: 'absolute',
+        top: (StatusBar.currentHeight || 0) + 20,
+        left: 20,
+        zIndex: 10,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    contentContainer: {
+        width: '100%',
+        maxWidth: 400,
+        alignSelf: 'center',
+        padding: 20,
+    },
+    titleContainer: {
+        marginBottom: 30,
     },
     title: {
-        fontSize: 28,
+        fontSize: 36,
         fontWeight: 'bold',
+        color: '#FFFFFF',
         textAlign: 'center',
         marginBottom: 8,
+        textShadowColor: 'rgba(0, 0, 0, 0.75)',
+        textShadowOffset: { width: 1, height: 1 },
+        textShadowRadius: 5,
     },
     subtitle: {
-        fontSize: 16,
-        color: '#666',
+        fontSize: 18,
+        color: '#FFFFFF',
         textAlign: 'center',
-        marginBottom: 32,
+        marginBottom: 24,
+        textShadowColor: 'rgba(0, 0, 0, 0.5)',
+        textShadowOffset: { width: 1, height: 1 },
+        textShadowRadius: 3,
     },
     form: {
         gap: 16,
     },
     input: {
-        backgroundColor: '#fff',
+        backgroundColor: 'rgba(0, 0, 0, 0.3)',
     },
-    button: {
+    inputOutline: {
+        borderRadius: 8,
+        borderColor: 'rgba(255, 255, 255, 0.3)',
+    },
+    loginButton: {
+        borderRadius: 30,
         marginTop: 8,
-        paddingVertical: 8,
+        backgroundColor: '#6C63FF',
+    },
+    buttonContent: {
+        height: 50,
+    },
+    buttonLabel: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        letterSpacing: 0.5,
     },
     error: {
-        color: '#B00020',
+        color: '#FF6B6B',
         textAlign: 'center',
+        marginTop: 8,
+        textShadowColor: 'rgba(0, 0, 0, 0.5)',
+        textShadowOffset: { width: 1, height: 1 },
+        textShadowRadius: 3,
     },
     forgotPassword: {
         alignItems: 'center',
         marginTop: 16,
     },
     forgotPasswordText: {
-        color: '#666',
+        color: '#FFFFFF',
+        fontSize: 14,
+        textShadowColor: 'rgba(0, 0, 0, 0.5)',
+        textShadowOffset: { width: 1, height: 1 },
+        textShadowRadius: 3,
     },
     footer: {
         flexDirection: 'row',
         justifyContent: 'center',
-        marginTop: 32,
+        marginTop: 24,
+    },
+    footerText: {
+        color: '#FFFFFF',
+        textShadowColor: 'rgba(0, 0, 0, 0.5)',
+        textShadowOffset: { width: 1, height: 1 },
+        textShadowRadius: 3,
     },
     signUpText: {
-        color: '#6200ee',
+        color: '#A5A1FF',
         fontWeight: 'bold',
+        textShadowColor: 'rgba(0, 0, 0, 0.5)',
+        textShadowOffset: { width: 1, height: 1 },
+        textShadowRadius: 3,
     },
 });
 
-export default Login
+export default Login;
