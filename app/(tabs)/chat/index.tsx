@@ -1,15 +1,77 @@
-import { View, Text, StyleSheet, ActivityIndicator, FlatList, Image, TextInput, TouchableOpacity } from 'react-native';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import {
+    View,
+    Text,
+    StyleSheet,
+    ActivityIndicator,
+    FlatList,
+    Image,
+    TextInput,
+    TouchableOpacity,
+    Animated,
+    Platform,
+    StatusBar
+} from 'react-native';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { getAllFriend } from '@/services/friend/getAllFriend';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import { format, isToday, isYesterday } from 'date-fns';
+
+const AnimatedHeader = ({ scrollY }: { scrollY: Animated.Value }) => {
+    const headerHeight = scrollY.interpolate({
+        inputRange: [0, 10],
+        outputRange: [80, 70],
+        extrapolate: 'clamp',
+    });
+
+    const textOpacity = scrollY.interpolate({
+        inputRange: [0, 60, 90],
+        outputRange: [1, 0.3, 0],
+        extrapolate: 'clamp',
+    });
+
+    return (
+        <Animated.View style={[styles.header, { height: headerHeight }]}>
+            <LinearGradient
+                colors={['#4F46E5', '#7C3AED']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.headerGradient}
+            >
+                <Animated.Text style={[styles.headerText, { opacity: textOpacity }]}>
+                    Messages
+                </Animated.Text>
+            </LinearGradient>
+        </Animated.View>
+    );
+};
+
+const formatMessageTime = (timestamp: any) => {
+    if (!timestamp) return '';
+
+    const date = new Date(timestamp);
+
+    if (isToday(date)) {
+        return format(date, 'h:mm a');
+    } else if (isYesterday(date)) {
+        return 'Yesterday';
+    } else {
+        return format(date, 'MMM d');
+    }
+};
 
 const ChatMain = () => {
-    const [allFriend, setAllFriend] = useState<any[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [searchQuery, setSearchQuery] = useState<string>('');
+    const [allFriend, setAllFriend] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchFocused, setSearchFocused] = useState(false);
+    const scrollY = new Animated.Value(0);
 
-    React.useEffect(() => {
+    useEffect(() => {
         const fetchFriends = async () => {
             try {
                 const res = await getAllFriend();
@@ -24,64 +86,158 @@ const ChatMain = () => {
         fetchFriends();
     }, []);
 
-    // Filter friends based on search query
-    const filteredFriends = allFriend.filter((friend) =>
+    const filteredFriends = allFriend.filter((friend: any) =>
         friend?.friendDetails?.fullName?.toLowerCase()?.includes(searchQuery?.toLowerCase()) ||
         friend?.friendDetails?.username?.toLowerCase()?.includes(searchQuery?.toLowerCase()) ||
-        friend?.friendDetails?.lastMessage?.toLowerCase()?.includes(searchQuery?.toLowerCase())
+        friend?.lastMessage?.text?.toLowerCase()?.includes(searchQuery?.toLowerCase())
     );
 
     if (loading) {
         return (
             <SafeAreaProvider>
-                <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-                    <View style={styles.content}>
-                        <ActivityIndicator size="large" color="#0000ff" />
+                <SafeAreaView style={styles.container} edges={['top']}>
+                    <StatusBar barStyle="light-content" />
+                    <View style={styles.loadingContainer}>
+                        <MotiView
+                            from={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ type: 'timing', duration: 700 }}
+                            style={styles.loadingContent}
+                        >
+                            <ActivityIndicator size="large" color="#7C3AED" />
+                            <Text style={styles.loadingText}>Loading your conversations...</Text>
+                        </MotiView>
                     </View>
                 </SafeAreaView>
             </SafeAreaProvider>
         );
     }
 
-    return (
-        <SafeAreaProvider>
-            <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-                <View style={styles.header}>
-                    <Text style={styles.headerText}>Chats</Text>
+    const renderSearchBar = () => (
+        <Animated.View
+            style={[
+                styles.searchContainer,
+                {
+                    transform: [
+                        {
+                            translateY: scrollY.interpolate({
+                                inputRange: [0, 50],
+                                outputRange: [0, -10],
+                                extrapolate: 'clamp',
+                            }),
+                        },
+                    ],
+                },
+            ]}
+        >
+            <BlurView intensity={Platform.OS === 'ios' ? 30 : 100} style={styles.searchBlur}>
+                <View style={styles.searchBar}>
+                    <Ionicons name="search-outline" size={20} color={searchFocused ? "#7C3AED" : "#A0A0A0"} />
                     <TextInput
                         style={styles.searchInput}
-                        placeholder="Search friends..."
+                        placeholder="Search conversations..."
+                        placeholderTextColor="#A0A0A0"
                         value={searchQuery}
                         onChangeText={setSearchQuery}
-
+                        onFocus={() => setSearchFocused(true)}
+                        onBlur={() => setSearchFocused(false)}
                     />
-                </View>
-                <FlatList
-                    data={filteredFriends}
-                    keyExtractor={(item) => item.friendDetails._id}
-                    renderItem={({ item }) => (
-                        <TouchableOpacity onPress={() => item.conversationId && router.push(`/chat/${item.conversationId}` as any)}>
-
-                            <View style={styles.friendItem}>
-                                <Image
-                                    source={{ uri: item.friendDetails.profilePic }}
-                                    style={styles.profilePic}
-                                />
-                                <View style={styles.friendInfo}>
-                                    <Text style={styles.friendName}>{item.friendDetails.fullName}</Text>
-                                    <Text style={styles.friendStatus}>
-                                        {item.lastMessage ? item.lastMessage.text : item.friendDetails.status}
-                                    </Text>
-                                </View>
-                                {item.friendDetails.isOnline && <View style={styles.onlineIndicator} />}
-                            </View>
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchQuery('')}>
+                            <Ionicons name="close-circle" size={20} color="#A0A0A0" />
                         </TouchableOpacity>
                     )}
-                    ListEmptyComponent={
-                        <View style={styles.emptyContainer}>
-                            <Text style={styles.emptyText}>No friends found</Text>
+                </View>
+            </BlurView>
+        </Animated.View>
+    );
+
+    const renderItem = ({ item, index }: any) => {
+        const friend = item.friendDetails;
+        const message = item.lastMessage;
+
+        return (
+            <MotiView
+                from={{ opacity: 0, translateY: 20 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{
+                    type: 'timing',
+                    duration: 350,
+                    delay: index * 80,
+                }}
+            >
+                <TouchableOpacity
+                    style={styles.chatCard}
+                    onPress={() => item.conversationId && router.push(`/chat/${item.conversationId}`)}
+                    activeOpacity={0.7}
+                >
+                    <View style={styles.avatarContainer}>
+                        <Image
+                            source={{ uri: friend.profilePic }}
+                            style={styles.avatar}
+                        />
+                        {friend.isOnline && <View style={styles.onlineIndicator} />}
+                    </View>
+
+                    <View style={styles.chatInfo}>
+                        <View style={styles.chatTopRow}>
+                            <Text style={styles.chatName} numberOfLines={1}>{friend.fullName}</Text>
+                            <Text style={styles.chatTime}>
+                                {message ? formatMessageTime(message.sendingTime) : ''}
+                            </Text>
                         </View>
-                    }
+
+                        <View style={styles.chatBottomRow}>
+                            <Text style={styles.chatMessage} numberOfLines={1}>
+                                {message ? message.text : friend.status}
+                            </Text>
+
+                            {message && message.status === 'sent' && (
+                                <View style={styles.messageStatus}>
+                                    <Ionicons name="checkmark" size={16} color="#A0A0A0" />
+                                </View>
+                            )}
+                        </View>
+                    </View>
+                </TouchableOpacity>
+            </MotiView>
+        );
+    };
+
+    const renderEmptyComponent = () => (
+        <MotiView
+            from={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'timing', duration: 700 }}
+            style={styles.emptyContainer}
+        >
+            <Ionicons name="search" size={60} color="#D1D5DB" />
+            <Text style={styles.emptyTitle}>No results found</Text>
+            <Text style={styles.emptyDescription}>
+                We couldn't find any conversations matching "{searchQuery}"
+            </Text>
+        </MotiView>
+    );
+
+    return (
+        <SafeAreaProvider>
+            <SafeAreaView style={styles.container} edges={['top']}>
+                <StatusBar barStyle="light-content" />
+
+                <AnimatedHeader scrollY={scrollY} />
+                {renderSearchBar()}
+
+                <Animated.FlatList
+                    data={filteredFriends}
+                    keyExtractor={(item: any) => item.friendDetails._id}
+                    renderItem={renderItem}
+                    contentContainerStyle={styles.list}
+                    ListEmptyComponent={renderEmptyComponent}
+                    onScroll={Animated.event(
+                        [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                        { useNativeDriver: false }
+                    )}
+                    scrollEventThrottle={16}
                 />
             </SafeAreaView>
         </SafeAreaProvider>
@@ -91,72 +247,156 @@ const ChatMain = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f5f5f5',
+        backgroundColor: '#F9FAFB',
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#F9FAFB',
+    },
+    loadingContent: {
+        alignItems: 'center',
+    },
+    loadingText: {
+        marginTop: 12,
+        fontSize: 16,
+        color: '#6B7280',
+        fontWeight: '500',
     },
     header: {
-        padding: 16,
-        backgroundColor: '#fff',
-        borderBottomWidth: 1,
-        borderBottomColor: '#e0e0e0',
+        width: '100%',
+        justifyContent: 'flex-end',
+        paddingBottom: 10,
+    },
+    headerGradient: {
+        flex: 1,
+        paddingHorizontal: 20,
+        paddingBottom: 16,
+        justifyContent: 'flex-end',
     },
     headerText: {
-        fontSize: 24,
+        fontSize: 34,
         fontWeight: 'bold',
-        marginBottom: 16,
+        color: '#FFFFFF',
     },
-    searchInput: {
-        height: 40,
-        borderWidth: 1,
-        borderColor: '#e0e0e0',
-        borderRadius: 20,
+    searchContainer: {
         paddingHorizontal: 16,
-        backgroundColor: '#fff',
+        marginTop: 20,
+        zIndex: 10,
     },
-    content: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
+    searchBlur: {
+        borderRadius: 16,
+        overflow: 'hidden',
     },
-    friendItem: {
+    searchBar: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 16,
-        backgroundColor: '#fff',
-        borderBottomWidth: 1,
-        borderBottomColor: '#e0e0e0',
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        borderRadius: 16,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 2,
     },
-    profilePic: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
+    searchInput: {
+        flex: 1,
+        marginLeft: 8,
+        fontSize: 16,
+        color: '#1F2937',
+        borderRadius: 5
+    },
+    list: {
+        paddingHorizontal: 16,
+        paddingTop: 16,
+        paddingBottom: 24,
+    },
+    chatCard: {
+        flexDirection: 'row',
+        padding: 16,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        marginBottom: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 1,
+    },
+    avatarContainer: {
+        position: 'relative',
         marginRight: 16,
     },
-    friendInfo: {
-        flex: 1,
-    },
-    friendName: {
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    friendStatus: {
-        fontSize: 14,
-        color: '#666',
+    avatar: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: '#E5E7EB',
     },
     onlineIndicator: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-        backgroundColor: '#4CAF50',
+        position: 'absolute',
+        bottom: 2,
+        right: 2,
+        width: 14,
+        height: 14,
+        borderRadius: 7,
+        backgroundColor: '#10B981',
+        borderWidth: 2,
+        borderColor: '#FFFFFF',
     },
-    emptyContainer: {
+    chatInfo: {
         flex: 1,
         justifyContent: 'center',
-        alignItems: 'center',
-        padding: 16,
     },
-    emptyText: {
+    chatTopRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 6,
+    },
+    chatName: {
         fontSize: 16,
-        color: '#666',
+        fontWeight: '600',
+        color: '#1F2937',
+        flex: 1,
+    },
+    chatTime: {
+        fontSize: 12,
+        color: '#6B7280',
+    },
+    chatBottomRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    chatMessage: {
+        fontSize: 14,
+        color: '#6B7280',
+        flex: 1,
+    },
+    messageStatus: {
+        marginLeft: 4,
+    },
+    emptyContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 60,
+        paddingHorizontal: 24,
+    },
+    emptyTitle: {
+        fontSize: 20,
+        fontWeight: '600',
+        color: '#374151',
+        marginTop: 16,
+        marginBottom: 8,
+    },
+    emptyDescription: {
+        fontSize: 14,
+        color: '#6B7280',
+        textAlign: 'center',
     },
 });
 

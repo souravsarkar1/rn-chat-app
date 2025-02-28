@@ -124,15 +124,15 @@ const LandingScreen = () => {
                                         Get Started
                                     </Button>
 
-                                    {/* <Button
+                                    <Button
                                         mode="outlined"
-                                        onPress={() => router.push('/(tabs)')}
+                                        onPress={() => router.push('/(tabs)/home')}
                                         style={[styles.button, styles.signUpButton]}
                                         contentStyle={styles.buttonContent}
                                         labelStyle={styles.signUpButtonLabel}
                                     >
                                         Create Account
-                                    </Button> */}
+                                    </Button>
 
                                     <Button
                                         mode="text"

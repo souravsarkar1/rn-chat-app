@@ -21,6 +21,8 @@ import Animated, {
     withDelay,
     Easing
 } from 'react-native-reanimated';
+import { useAppDispatch } from '@/redux/store';
+import { loginFunction } from '@/redux/authentication/action';
 
 const { width, height } = Dimensions.get('window');
 
@@ -32,7 +34,7 @@ const Login = () => {
     const [error, setError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const router = useRouter();
-
+    const dispatch = useAppDispatch();
     // Animation values
     const formOpacity = useSharedValue(0);
     const formTranslateY = useSharedValue(50);
@@ -78,13 +80,19 @@ const Login = () => {
         try {
             setLoading(true);
             // Simulating API call with timeout
-            setTimeout(() => {
-                setLoading(false);
-                // Navigate to home screen on successful login
+            const res = await dispatch(loginFunction({ username: username.trim(), email: username.trim(), password }));
+            if (res.success) {
                 router.push('/(tabs)/home' as any);
-            }, 1500);
+            }
+            // setTimeout(() => {
+            //     setLoading(false);
+            //     // Navigate to home screen on successful login
+            //     
+            // }, 1500);
         } catch (err) {
             setError('Invalid username or password');
+            setLoading(false);
+        } finally {
             setLoading(false);
         }
     };
