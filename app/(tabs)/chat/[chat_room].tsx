@@ -20,7 +20,7 @@ const SingleChatPage = () => {
     const [isInitialLoad, setIsInitialLoad] = useState(true);
 
     useEffect(() => {
-        socket.current = io('http://192.168.0.106:3000', {
+        socket.current = io('http://https://chat-back-end-qct4.onrender.com:3000', {
             withCredentials: true,
         });
 
