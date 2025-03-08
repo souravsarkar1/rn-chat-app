@@ -1,529 +1,342 @@
-import { View, Text, SafeAreaView, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from "react";
+import {
+    View,
+    Text,
+    StyleSheet,
+    SafeAreaView,
+    ImageBackground,
+    TextInput,
+    TouchableOpacity,
+    Animated,
+    Dimensions,
+    KeyboardAvoidingView,
+    Platform
+} from "react-native";
+import { Ionicons } from '@expo/vector-icons';
+import { router } from "expo-router";
+import { singUp1 } from "@/services/auth/signup";
 
 const Signup = () => {
-    // Step management (0 = email/password, 1 = personal info, 2 = confirmation)
-    const [step, setStep] = useState(0);
+    // Animation values
+    const fadeAnim = useState(new Animated.Value(0))[0];
+    const slideAnim = useState(new Animated.Value(50))[0];
+    const inputFade1 = useState(new Animated.Value(0))[0];
+    const inputFade2 = useState(new Animated.Value(0))[0];
+    const buttonFade = useState(new Animated.Value(0))[0];
+    const socialFade = useState(new Animated.Value(0))[0];
+    const footerFade = useState(new Animated.Value(0))[0];
 
-    // Form data storage
-    const [userData, setUserData] = useState({
-        email: '',
-        password: '',
-        confirmPassword: '',
-        firstName: '',
-        lastName: '',
-        phone: '',
-        address: ''
-    });
-
-    // Error handling
-    const [errors, setErrors] = useState<any>({});
-
-    // Loading state
-    const [loading, setLoading] = useState(false);
-
-    // Define form fields for each step
-    const stepOneFormData = [
-        {
-            id: 1,
-            type: "input",
-            placeholder: "Enter Your Email",
-            name: "email",
-            keyboardType: "email-address",
-            autoCapitalize: "none"
-        },
-        {
-            id: 2,
-            type: "password",
-            placeholder: "Create Password",
-            name: "password",
-            secureTextEntry: true
-        },
-        {
-            id: 3,
-            type: "password",
-            placeholder: "Confirm Password",
-            name: "confirmPassword",
-            secureTextEntry: true
-        }
-    ];
-
-    const stepTwoFormData = [
-        {
-            id: 1,
-            type: "input",
-            placeholder: "First Name",
-            name: "firstName"
-        },
-        {
-            id: 2,
-            type: "input",
-            placeholder: "Last Name",
-            name: "lastName"
-        },
-        {
-            id: 3,
-            type: "input",
-            placeholder: "Phone Number",
-            name: "phone",
-            keyboardType: "phone-pad"
-        },
-        {
-            id: 4,
-            type: "input",
-            placeholder: "Address",
-            name: "address",
-            multiline: true
-        }
-    ];
-
-    // Handle input changes
-    const handleChange = (name: any, value: any) => {
-        setUserData({
-            ...userData,
-            [name]: value
-        });
-
-        // Clear error when user types
-        if (errors[name]) {
-            setErrors({
-                ...errors,
-                [name]: ''
-            });
-        }
-    };
-
-    // Validate current step
-    const validateStep = () => {
-        let isValid = true;
-        const newErrors: any = {};
-
-        if (step === 0) {
-            // Validate email
-            if (!userData.email) {
-                newErrors.email = 'Email is required';
-                isValid = false;
-            } else if (!/\S+@\S+\.\S+/.test(userData.email)) {
-                newErrors.email = 'Email is invalid';
-                isValid = false;
-            }
-
-            // Validate password
-            if (!userData.password) {
-                newErrors.password = 'Password is required';
-                isValid = false;
-            } else if (userData.password.length < 6) {
-                newErrors.password = 'Password must be at least 6 characters';
-                isValid = false;
-            }
-
-            // Validate password confirmation
-            if (userData.password !== userData.confirmPassword) {
-                newErrors.confirmPassword = 'Passwords do not match';
-                isValid = false;
-            }
-        } else if (step === 1) {
-            // Validate first name
-            if (!userData.firstName) {
-                newErrors.firstName = 'First name is required';
-                isValid = false;
-            }
-
-            // Validate last name
-            if (!userData.lastName) {
-                newErrors.lastName = 'Last name is required';
-                isValid = false;
-            }
-
-            // Validate phone number
-            if (!userData.phone) {
-                newErrors.phone = 'Phone number is required';
-                isValid = false;
-            }
-        }
-
-        setErrors(newErrors);
-        return isValid;
-    };
-
-    // Handle moving to the next step
-    const handleNextStep = () => {
-        if (validateStep()) {
-            setStep(step + 1);
-        }
-    };
-
-    // Handle going back to the previous step
-    const handlePrevStep = () => {
-        setStep(step - 1);
-    };
-
-    // Handle form submission
+    // State for inputs
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const handleSubmit = async () => {
-        if (validateStep()) {
-            setLoading(true);
-            try {
-                // Simulate API call
-                await new Promise(resolve => setTimeout(resolve, 1500));
-                console.log('Form submitted with data:', userData);
-                setLoading(false);
-
-                // Reset form after successful submission
-                alert('Registration successful!');
-                setUserData({
-                    email: '',
-                    password: '',
-                    confirmPassword: '',
-                    firstName: '',
-                    lastName: '',
-                    phone: '',
-                    address: ''
-                });
-                setStep(0);
-            } catch (error) {
-                setLoading(false);
-                alert('Registration failed. Please try again.');
+        const payload = { email, password };
+        console.log(payload)
+        try {
+            const res = await singUp1(payload);
+            // console.log(res)
+            if (res?.success) {
+                router.push('/userdetails')
             }
+        } catch (error) {
+            console.log(error)
         }
-    };
+    }
+    // Run animations when component mounts
+    useEffect(() => {
+        // Sequence the animations
+        Animated.sequence([
+            // Fade in title with slide
+            Animated.parallel([
+                Animated.timing(fadeAnim, {
+                    toValue: 1,
+                    duration: 1000,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(slideAnim, {
+                    toValue: 0,
+                    duration: 1000,
+                    useNativeDriver: true,
+                })
+            ]),
 
-    // Render form fields
-    const renderFormFields = (fields: any) => {
-        return fields.map((field: any) => (
-            <View key={field.id} style={styles.inputContainer}>
-                <TextInput
-                    style={[styles.input, errors[field.name] ? styles.inputError : null]}
-                    placeholder={field.placeholder}
-                    placeholderTextColor="#9CA3AF"
-                    //@ts-ignore
-                    value={userData[field.name]}
-                    onChangeText={(value) => handleChange(field.name, value)}
-                    secureTextEntry={field.secureTextEntry}
-                    keyboardType={field.keyboardType || 'default'}
-                    autoCapitalize={field.autoCapitalize || 'sentences'}
-                    multiline={field.multiline}
-                    numberOfLines={field.multiline ? 3 : 1}
-                />
-                {errors[field.name] ? (
-                    <Text style={styles.errorText}>{errors[field.name]}</Text>
-                ) : null}
-            </View>
-        ));
-    };
+            // Fade in first input
+            Animated.timing(inputFade1, {
+                toValue: 1,
+                duration: 500,
+                useNativeDriver: true,
+            }),
 
-    // Render step content
-    const renderStepContent = () => {
-        switch (step) {
-            case 0:
-                return (
-                    <View style={styles.stepContainer}>
-                        <Text style={styles.stepTitle}>Create Your Account</Text>
-                        <Text style={styles.stepDescription}>
-                            Please enter your email and create a password to get started.
-                        </Text>
-                        {renderFormFields(stepOneFormData)}
-                        <TouchableOpacity style={styles.button} onPress={handleNextStep}>
-                            <Text style={styles.buttonText}>Continue</Text>
-                        </TouchableOpacity>
-                    </View>
-                );
-            case 1:
-                return (
-                    <View style={styles.stepContainer}>
-                        <Text style={styles.stepTitle}>Personal Information</Text>
-                        <Text style={styles.stepDescription}>
-                            Tell us a bit about yourself to complete your profile.
-                        </Text>
-                        {renderFormFields(stepTwoFormData)}
-                        <View style={styles.buttonRow}>
-                            <TouchableOpacity style={styles.secondaryButton} onPress={handlePrevStep}>
-                                <Text style={styles.secondaryButtonText}>Back</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.button} onPress={handleNextStep}>
-                                <Text style={styles.buttonText}>Continue</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                );
-            case 2:
-                return (
-                    <View style={styles.stepContainer}>
-                        <Text style={styles.stepTitle}>Confirm Your Details</Text>
-                        <Text style={styles.stepDescription}>
-                            Please review your information before submitting.
-                        </Text>
-                        <View style={styles.summaryContainer}>
-                            <View style={styles.summaryRow}>
-                                <Text style={styles.summaryLabel}>Email:</Text>
-                                <Text style={styles.summaryValue}>{userData.email}</Text>
-                            </View>
-                            <View style={styles.summaryRow}>
-                                <Text style={styles.summaryLabel}>Name:</Text>
-                                <Text style={styles.summaryValue}>{userData.firstName} {userData.lastName}</Text>
-                            </View>
-                            <View style={styles.summaryRow}>
-                                <Text style={styles.summaryLabel}>Phone:</Text>
-                                <Text style={styles.summaryValue}>{userData.phone}</Text>
-                            </View>
-                            <View style={styles.summaryRow}>
-                                <Text style={styles.summaryLabel}>Address:</Text>
-                                <Text style={styles.summaryValue}>{userData.address}</Text>
-                            </View>
-                        </View>
-                        <View style={styles.buttonRow}>
-                            <TouchableOpacity style={styles.secondaryButton} onPress={handlePrevStep}>
-                                <Text style={styles.secondaryButtonText}>Back</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.button, loading && styles.buttonDisabled]}
-                                onPress={handleSubmit}
-                                disabled={loading}
-                            >
-                                {loading ? (
-                                    <ActivityIndicator color="#FFFFFF" size="small" />
-                                ) : (
-                                    <Text style={styles.buttonText}>Submit Registration</Text>
-                                )}
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                );
-            default:
-                return null;
-        }
-    };
+            // Fade in second input
+            Animated.timing(inputFade2, {
+                toValue: 1,
+                duration: 500,
+                useNativeDriver: true,
+            }),
 
-    // Progress indicator
-    const renderProgressBar = () => {
-        return (
-            <View style={styles.progressContainer}>
-                <View style={styles.progressStepsContainer}>
-                    {[0, 1, 2].map((index) => (
-                        <View key={index} style={styles.progressStepWrapper}>
-                            <View
-                                style={[
-                                    styles.progressStep,
-                                    index <= step ? styles.progressStepActive : null
-                                ]}
-                            >
-                                <Text
-                                    style={[
-                                        styles.progressStepText,
-                                        index <= step ? styles.progressStepTextActive : null
-                                    ]}
-                                >
-                                    {index + 1}
-                                </Text>
-                            </View>
-                            <Text style={styles.progressStepLabel}>
-                                {index === 0 ? 'Account' : index === 1 ? 'Personal' : 'Confirm'}
-                            </Text>
-                        </View>
-                    ))}
-                </View>
-                <View style={styles.progressBarContainer}>
-                    <View
-                        style={[
-                            styles.progressBar,
-                            { width: `${(step / 2) * 100}%` }
-                        ]}
-                    />
-                </View>
-            </View>
-        );
-    };
+            // Fade in button
+            Animated.timing(buttonFade, {
+                toValue: 1,
+                duration: 500,
+                useNativeDriver: true,
+            }),
+
+            // Fade in social buttons
+            Animated.timing(socialFade, {
+                toValue: 1,
+                duration: 500,
+                useNativeDriver: true,
+            }),
+
+            // Fade in footer
+            Animated.timing(footerFade, {
+                toValue: 1,
+                duration: 500,
+                useNativeDriver: true,
+            })
+        ]).start();
+    }, []);
 
     return (
         <SafeAreaView style={styles.container}>
-            <ScrollView contentContainerStyle={styles.scrollContainer}>
-                <View style={styles.header}>
-                    <Text style={styles.headerTitle}>Sign Up</Text>
-                    <Text style={styles.headerSubtitle}>Create a new account</Text>
-                </View>
+            <ImageBackground
+                source={{ uri: "https://images.unsplash.com/photo-1563188997-9dd8144d4f91?q=80&w=1544&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" }}
+                style={styles.background}
+                resizeMode="cover"
+            >
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === "ios" ? "padding" : "height"}
+                    style={styles.keyboardAvoid}
+                >
+                    <View style={styles.overlay}>
+                        <Animated.Text
+                            style={[
+                                styles.title,
+                                {
+                                    opacity: fadeAnim,
+                                    transform: [{ translateY: slideAnim }]
+                                }
+                            ]}
+                        >
+                            Welcome
+                        </Animated.Text>
 
-                {renderProgressBar()}
+                        <Animated.Text
+                            style={[
+                                styles.subtitle,
+                                {
+                                    opacity: fadeAnim,
+                                    transform: [{ translateY: slideAnim }]
+                                }
+                            ]}
 
-                <View style={styles.formContainer}>
-                    {renderStepContent()}
-                </View>
-            </ScrollView>
+                        >
+                            Create your account
+                        </Animated.Text>
+
+                        <Animated.View style={[styles.inputContainer, { opacity: inputFade1 }]}>
+                            <Ionicons name="mail-outline" size={20} color="#ddd" style={styles.inputIcon} />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Email"
+                                placeholderTextColor="#ddd"
+                                value={email}
+                                onChangeText={setEmail}
+                                keyboardType="email-address"
+                                autoCapitalize="none"
+                            />
+                        </Animated.View>
+
+                        <Animated.View style={[styles.inputContainer, { opacity: inputFade2 }]}>
+                            <Ionicons name="lock-closed-outline" size={20} color="#ddd" style={styles.inputIcon} />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Password"
+                                secureTextEntry
+                                placeholderTextColor="#ddd"
+                                value={password}
+                                onChangeText={setPassword}
+                            />
+                        </Animated.View>
+
+                        <Animated.View style={{ opacity: buttonFade, width: "100%" }}>
+                            <TouchableOpacity onPress={handleSubmit} style={styles.button}>
+                                <Text style={styles.buttonText}>Create Account</Text>
+                            </TouchableOpacity>
+                        </Animated.View>
+
+                        <Animated.View style={[styles.orContainer, { opacity: socialFade }]}>
+                            <View style={styles.orLine} />
+                            <Text style={styles.orText}>or sign up with</Text>
+                            <View style={styles.orLine} />
+                        </Animated.View>
+
+                        <Animated.View style={[styles.socialButtonsContainer, { opacity: socialFade }]}>
+                            <TouchableOpacity style={styles.socialButton}>
+                                <Ionicons name="logo-facebook" size={22} color="#fff" />
+                            </TouchableOpacity>
+
+                            <TouchableOpacity style={[styles.socialButton, styles.googleButton]}>
+                                <Ionicons name="logo-google" size={22} color="#fff" />
+                            </TouchableOpacity>
+
+                            <TouchableOpacity style={[styles.socialButton, styles.appleButton]}>
+                                <Ionicons name="logo-apple" size={22} color="#fff" />
+                            </TouchableOpacity>
+                        </Animated.View>
+
+                        <Animated.Text style={[styles.footerText, { opacity: footerFade }]}>
+                            Already have an account?{" "}
+                            <Text style={styles.loginText} onPress={() => router.push('/login')}>
+                                Login
+                            </Text>
+                        </Animated.Text>
+
+                    </View>
+                </KeyboardAvoidingView>
+            </ImageBackground>
         </SafeAreaView>
     );
 };
 
+const { width } = Dimensions.get('window');
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F9FAFB',
     },
-    scrollContainer: {
-        flexGrow: 1,
-        paddingBottom: 30,
+    background: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
     },
-    header: {
-        alignItems: 'center',
-        marginTop: 30,
-        marginBottom: 20,
+    keyboardAvoid: {
+        flex: 1,
+        width: "100%",
+        justifyContent: "center",
+        alignItems: "center",
     },
-    headerTitle: {
-        fontSize: 28,
-        fontWeight: '700',
-        color: '#1F2937',
-        marginBottom: 6,
-    },
-    headerSubtitle: {
-        fontSize: 16,
-        color: '#6B7280',
-    },
-    progressContainer: {
-        marginHorizontal: 24,
-        marginBottom: 24,
-    },
-    progressStepsContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 10,
-    },
-    progressStepWrapper: {
-        alignItems: 'center',
-    },
-    progressStep: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: '#F3F4F6',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 6,
-    },
-    progressStepActive: {
-        backgroundColor: '#4F46E5',
-    },
-    progressStepText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#6B7280',
-    },
-    progressStepTextActive: {
-        color: '#FFFFFF',
-    },
-    progressStepLabel: {
-        fontSize: 12,
-        color: '#6B7280',
-    },
-    progressBarContainer: {
-        height: 4,
-        backgroundColor: '#E5E7EB',
-        borderRadius: 2,
-    },
-    progressBar: {
-        height: '100%',
-        backgroundColor: '#4F46E5',
-        borderRadius: 2,
-    },
-    formContainer: {
-        marginHorizontal: 24,
-        backgroundColor: '#FFFFFF',
-        borderRadius: 12,
-        shadowColor: '#000',
+    overlay: {
+        // backgroundColor: "rgba(0, 0, 0, 0.65)",
+        padding: 30,
+        borderRadius: 20,
+        width: "100%",
+        alignItems: "center",
+        // shadowColor: "#000",
         shadowOffset: {
             width: 0,
-            height: 1,
+            height: 10,
         },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-        elevation: 3,
-        overflow: 'hidden',
+        // shadowOpacity: 0.5,
+        // shadowRadius: 20,
+        // elevation: 15,
+        backdropFilter: "blur(10px)",
     },
-    stepContainer: {
-        padding: 24,
+    title: {
+        fontSize: 38,
+        fontWeight: "bold",
+        color: "#fff",
+        marginBottom: 5,
+        textAlign: "center",
     },
-    stepTitle: {
-        fontSize: 22,
-        fontWeight: '600',
-        color: '#1F2937',
-        marginBottom: 8,
-    },
-    stepDescription: {
-        fontSize: 14,
-        color: '#6B7280',
-        marginBottom: 24,
+    subtitle: {
+        fontSize: 16,
+        color: "#ddd",
+        marginBottom: 30,
+        textAlign: "center",
     },
     inputContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        width: "100%",
+        backgroundColor: "rgba(255, 255, 255, 0.15)",
+        borderRadius: 12,
         marginBottom: 16,
+        paddingHorizontal: 15,
+    },
+    inputIcon: {
+        marginRight: 10,
     },
     input: {
-        backgroundColor: '#F9FAFB',
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
-        borderRadius: 8,
-        padding: 14,
+        flex: 1,
+        padding: 15,
+        color: "#fff",
         fontSize: 16,
-        color: '#1F2937',
-    },
-    inputError: {
-        borderColor: '#EF4444',
-    },
-    errorText: {
-        color: '#EF4444',
-        fontSize: 12,
-        marginTop: 4,
     },
     button: {
-        backgroundColor: '#4F46E5',
-        paddingVertical: 14,
-        borderRadius: 8,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 8,
-    },
-    buttonDisabled: {
-        opacity: 0.7,
+        backgroundColor: "#ff6b6b",
+        paddingVertical: 15,
+        borderRadius: 12,
+        width: "100%",
+        alignItems: "center",
+        marginTop: 10,
+        shadowColor: "#ff6b6b",
+        shadowOffset: {
+            width: 0,
+            height: 5,
+        },
+        shadowOpacity: 0.5,
+        shadowRadius: 10,
+        elevation: 5,
     },
     buttonText: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: '600',
+        color: "#fff",
+        fontSize: 18,
+        fontWeight: "bold",
     },
-    buttonRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginTop: 8,
+    orContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        width: "100%",
+        marginVertical: 20,
     },
-    secondaryButton: {
-        backgroundColor: '#F3F4F6',
-        paddingVertical: 14,
-        paddingHorizontal: 18,
-        borderRadius: 8,
-        alignItems: 'center',
-        justifyContent: 'center',
-        flex: 0.48,
-    },
-    secondaryButtonText: {
-        color: '#4B5563',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    summaryContainer: {
-        backgroundColor: '#F9FAFB',
-        borderRadius: 8,
-        padding: 16,
-        marginBottom: 16,
-    },
-    summaryRow: {
-        flexDirection: 'row',
-        marginBottom: 12,
-    },
-    summaryLabel: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: '#4B5563',
-        width: 80,
-    },
-    summaryValue: {
-        fontSize: 15,
-        color: '#1F2937',
+    orLine: {
         flex: 1,
+        height: 1,
+        backgroundColor: "rgba(255, 255, 255, 0.3)",
+    },
+    orText: {
+        color: "#ddd",
+        marginHorizontal: 10,
+        fontSize: 14,
+    },
+    socialButtonsContainer: {
+        flexDirection: "row",
+        justifyContent: "center",
+        width: "100%",
+        marginBottom: 20,
+    },
+    socialButton: {
+        backgroundColor: "#3b5998", // Facebook blue
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        justifyContent: "center",
+        alignItems: "center",
+        marginHorizontal: 10,
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 3,
+        },
+        shadowOpacity: 0.3,
+        shadowRadius: 5,
+        elevation: 3,
+    },
+    googleButton: {
+        backgroundColor: "#DB4437", // Google red
+    },
+    appleButton: {
+        backgroundColor: "#000", // Apple black
+    },
+    footerText: {
+        color: "#fff",
+        fontSize: 15,
+    },
+    loginText: {
+        fontWeight: "bold",
+        color: "#FFD700",
+        textDecorationLine: "underline",
     },
 });
 

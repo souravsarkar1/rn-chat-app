@@ -126,7 +126,7 @@ const LandingScreen = () => {
 
                                     <Button
                                         mode="outlined"
-                                        onPress={() => router.push('/(tabs)/home')}
+                                        onPress={() => router.push('/userdetails')}
                                         style={[styles.button, styles.signUpButton]}
                                         contentStyle={styles.buttonContent}
                                         labelStyle={styles.signUpButtonLabel}
